@@ -1,0 +1,28 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+
+    stages {
+   
+
+
+
+        stage('deploy') {
+            steps {
+              
+
+
+                   def shellCmd = "bash ./server-cmds.sh"
+                   def ec2Instance = "ubuntu@54.91.142.64"
+
+                   sshagent(['ec2-server-key']) {
+                       sh "scp -o StrictHostKeyChecking=no server-cmds.sh ${ec2Instance}:/home/ubuntu"
+                       sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} ${shellCmd}"
+                   }
+                }
+            }
+        }
+        
+    }
+}
