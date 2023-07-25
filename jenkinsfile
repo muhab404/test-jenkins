@@ -11,7 +11,7 @@ pipeline {
         stage('deploy') {
             steps {
                 script {
-              
+              script {
 
 
                    def shellCmd = "bash ./server-cmds.sh"
@@ -26,3 +26,5 @@ pipeline {
         }
         
     }
+}
+}
