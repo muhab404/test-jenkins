@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define environment variables used in the pipeline
+        // Replace with the appropriate server username
+        SERVER_USER = 'your_server_user' 
+        // Replace with the appropriate server IP address
+        SERVER_IP = 'your_server_ip' 
+        // Replace with the appropriate directory path on your server
+        DEV_DIR_LOCATION = '/var/www/developer' 
+        // Define a custom function to get the timestamp
+        TIMESTAMP = getCurrentTimestamp() 
+         // Replace with the appropriate environment name
+        ENVIRONMENT = 'your_environment'
+         // Replace with your GitHub repo URL using SSH
+        REPO_URL = 'https://x-token-auth:${OAUTH_TOKEN}@bitbucket.org/your_username/your_repository.git'
+        // Bitbucket OAuth token (replace with your generated token)
+        OAUTH_TOKEN="your_generated_oauth_token"
+        // Replace with the appropriate branch name
+        GITHUB_BRANCH = 'your_branch_name' 
+        // Replace with the appropriate branch name
+        GITHUB_FOLDERNAME = 'your_branch_name' 
+        // Replace with the PostgreSQL database username
+        DB_USER = 'your_db_user' 
+        // Replace with the PostgreSQL database password
+        DB_PASSWORD = 'your_db_password' 
+        // Replace with the IP address of the PostgreSQL server
+        DB_IP = 'your_db_ip' 
+        // Replace with the PostgreSQL database name
+        DB_NAME = 'your_db_name'
+        // Replace with the PostgreSQL database port
+        DB_PORT = 'your_db_port'
+        //---------------------
+        Auth_DB_USER = 'your_Auth_DB_user' 
+        // Replace with the PostgreSQL database password
+        Auth_DB_PASSWORD = 'your_Auth_DB_password' 
+        // Replace with the IP address of the PostgreSQL server
+        Auth_DB_IP = 'your_Auth_DB_ip' 
+        // Replace with the PostgreSQL database name
+        Auth_DB_NAME = 'your_Auth_DB_name'
+        // Replace with the PostgreSQL database port
+        Auth_DB_PORT = 'your_Auth_DB_port'
+
+        //
+        ENV = 'your_environment'
+        // Replace with your private key
+        Private_key = 'your_private_key path /test/test/private_key'
+
+    }
+
+    stages {
+        stage('Backup') {
+            steps {
+                   script {
+
+
+                   def ec2Instance = "ubuntu@54.91.142.64"
+
+                   sshagent(['ec2-server-key']) {
+                       sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} 'mkdir -p /backup/portal/${TIMESTAMP}' "
+                       sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} 'tar -cf /backup/portal/${TIMESTAMP}/devportal${ENVIRONMENT}-${TIMESTAMP}.tar -C /var/www/developer .' "
+                       sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} 'pg_dump -U ${DB_USER} -h ${DB_IP} -f /backup/db/${TIMESTAMP}.sql -F t ${DB_NAME}' "
+                       sh "ssh -o StrictHostKeyChecking=no ${ec2Instance} 'pg_dump -U ${Auth_DB_USER} -h ${Auth_DB_IP} -f /backup/db/${TIMESTAMP}.sql -F t ${Auth_DB_NAME}' "
+                   }
+                
+            }
+            }
+        }
+
+        // stage('Clone Code') {
+        //     steps {
+        //         script {
+        //             cloneCodeStep()
+        //         }
+        //     }
+        // }
+
+        // stage('Configure DevPortal') {
+        //     steps {
+        //         script {
+        //             configureDevPortalStep()
+        //         }
+        //     }
+        // }
+    }
+}
+
+// Custom function to get the timestamp in a specific format
+def getCurrentTimestamp() {
+    return new Date().format('yyyyMMddHHmmss')
+}
+
+// def backupStep() {
+//     sh "mkdir -p /backup/portal/${TIMESTAMP}"
+//     sh "tar -cf /backup/portal/${TIMESTAMP}/devportal${ENVIRONMENT}-${TIMESTAMP}.tar -C /var/www/developer ."
+//     // Replace 'dbname' with your PostgreSQL database name
+//     sh "pg_dump -U ${DB_USER} -h ${DB_IP} -f /backup/db/${TIMESTAMP}.sql -F t ${DB_NAME}" 
+//     // Replace 'Auth_DB' with your PostgreSQL database name
+//     sh "pg_dump -U ${Auth_DB_USER} -h ${Auth_DB_IP} -f /backup/db/${TIMESTAMP}.sql -F t ${Auth_DB_NAME}"
+
+// }
+
+// def cloneCodeStep() {
+// // Clone the repository silently with OAuth token authentication
+// ssh "${NODE_USER}@${NODE_IP}" "cd /source && rm -rf ${GITHUB_FOLDERNAME}"
+// ssh "${NODE_USER}@${NODE_IP}" "cd /source && git clone --quiet --depth 1 -b ${GITHUB_BRANCH} ${REPO_URL}'" 
+
+// }
+
+// def configureDevPortalStep() {
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chown -R devportal:nginx ${DEV_DIR_LOCATION}/web"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chown -R devportal:nginx ${DEV_DIR_LOCATION}"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chmod 777 -R ${DEV_DIR_LOCATION}/web"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chmod 777 -R ${DEV_DIR_LOCATION}"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/web/libraries"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/web/modules"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/web/themes"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/sync"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/translation"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/composer.json"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo rm -rf ${DEV_DIR_LOCATION}/vendor/*"
+
+// // copying files to the server
+// ssh "${NODE_USER}@${NODE_IP}" "cp -r ./source/${GITHUB_FOLDERNAME}/web/libraries ${DEV_DIR_LOCATION}/web/libraries "
+// ssh "${NODE_USER}@${NODE_IP}" "cp -r ./source/${GITHUB_FOLDERNAME}/web/modules ${DEV_DIR_LOCATION}/web/modules "
+// ssh "${NODE_USER}@${NODE_IP}" "cp -r ./source/${GITHUB_FOLDERNAME}/web/themes ${DEV_DIR_LOCATION}/web/themes "
+// ssh "${NODE_USER}@${NODE_IP}" "cp -r ./source/${GITHUB_FOLDERNAME}/sync ${DEV_DIR_LOCATION}/sync "
+// ssh "${NODE_USER}@${NODE_IP}" "cp -r ./source/${GITHUB_FOLDERNAME}/translation ${DEV_DIR_LOCATION}/translation "
+// ssh "${NODE_USER}@${NODE_IP}" "cp -r ./source/${GITHUB_FOLDERNAME}/composer.json ${DEV_DIR_LOCATION}/composer.json "
+
+// // drush commands
+// ssh "${NODE_USER}@${NODE_IP}" "cd ${DEV_DIR_LOCATION} && composer update --no-interaction"
+// ssh "${NODE_USER}@${NODE_IP}" "cd ${DEV_DIR_LOCATION} && vendor/drush/drush/drush cim -y"
+// ssh "${NODE_USER}@${NODE_IP}" "cd ${DEV_DIR_LOCATION} && vendor/drush/drush/drush cr"
+// ssh "${NODE_USER}@${NODE_IP}" "cd ${DEV_DIR_LOCATION} && vendor/drush/drush/drush updb -y"
+// ssh "${NODE_USER}@${NODE_IP}" "cd ${DEV_DIR_LOCATION} && vendor/drush/drush/drush cr"
+// // pr
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chmod 777 -R ${DEV_DIR_LOCATION}/"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chown -R devportal:nginx ${DEV_DIR_LOCATION}/"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chmod 777 -R ${DEV_DIR_LOCATION}/web/"
+// ssh "${NODE_USER}@${NODE_IP}" "sudo chown -R devportal:nginx ${DEV_DIR_LOCATION}/web/"
+
+// // adding tags
+// curl --request PUT --header "private-token:${GITLAB_ACCESS_TOKEN}" "https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/variables/DEV_CURRENT_VERSION_TAG" --form "value=${CI_COMMIT_TAG}"
+
+// }
